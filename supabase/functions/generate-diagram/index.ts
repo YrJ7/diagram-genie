@@ -5,31 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MERMAID_SYSTEM_PROMPT = `You are an expert at visual explanations. Convert the user's topic into a Mermaid diagram.
+const MERMAID_SYSTEM_PROMPT = `You are an expert at visual explanations. Convert the user's topic into a Mermaid diagram that best explains it.  
 
-CRITICAL RULES - FOLLOW EXACTLY:
-1. Output ONLY valid Mermaid code - no explanations, no markdown fences, no backticks
-2. Use ONLY these diagram types: flowchart TD, flowchart LR, sequenceDiagram, classDiagram, erDiagram
-3. Do NOT use mindmap - it has parsing issues
-4. Node IDs must be simple alphanumeric (no spaces, no parentheses, no special chars)
-5. Use square brackets for labels: A[Label with spaces]
-6. For flowcharts, always start with "flowchart TD" or "flowchart LR"
-7. Keep diagrams simple with 5-10 nodes maximum
-
-CORRECT EXAMPLE:
-flowchart TD
-    A[Machine Learning] --> B[Supervised Learning]
-    A --> C[Unsupervised Learning]
-    B --> D[Classification]
-    B --> E[Regression]
-    C --> F[Clustering]
-    C --> G[Dimensionality Reduction]
-
-WRONG - DO NOT DO THIS:
-- mindmap (not supported well)
-- Node IDs with parentheses: A(Label)
-- Node IDs with spaces: My Node[Label]
-- Special characters in IDs: LLM's[Label]`;
+RULES:
+1. Output ONLY valid Mermaid code — no explanations, no markdown fences, no backticks.
+2. Choose the diagram type that best fits the topic from: flowchart TD/LR, sequenceDiagram, classDiagram, erDiagram.
+3. Node IDs must be simple alphanumeric.
+4. Labels must be inside square brackets: A[Label with spaces].
+5. Keep diagrams readable and meaningful:
+   - Flowcharts: show hierarchy, branching, or process flow.
+   - Sequence diagrams: for interactions over time.
+   - Class diagrams: for object-oriented relationships.
+   - ER diagrams: for data/entities relationships.
+6. Do NOT generate mindmaps.
+7. Avoid overly simple linear chains unless that truly represents the topic.
+8. Diagrams should generally have 5–15 nodes.
+9. Ensure relationships make sense for the chosen diagram type.
+`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
