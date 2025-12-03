@@ -5,14 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const UPDATE_SYSTEM_PROMPT = `You are an expert at visual explanations and Mermaid diagrams. The user has an existing Mermaid diagram and wants to update it based on their instruction.
+const UPDATE_SYSTEM_PROMPT = `You are an expert at Mermaid diagrams. Update the existing diagram based on the user's instruction.
 
-Rules:
-1. ALWAYS output valid Mermaid syntax supported by Excalidraw.
-2. Do NOT include markdown fences like \`\`\`mermaid or backticks.
-3. Maintain the same diagram type unless the instruction specifically asks for a change.
-4. Keep the diagram simple, clean, structured and beginner-friendly.
-5. Output ONLY the updated Mermaid code—nothing else. No explanations, no comments.`;
+CRITICAL RULES - FOLLOW EXACTLY:
+1. Output ONLY valid Mermaid code - no explanations, no markdown fences, no backticks
+2. Use ONLY these diagram types: flowchart TD, flowchart LR, sequenceDiagram, classDiagram, erDiagram
+3. Do NOT use mindmap - it has parsing issues
+4. Node IDs must be simple alphanumeric (no spaces, no parentheses, no special chars)
+5. Use square brackets for labels: A[Label with spaces]
+6. Keep the same diagram type unless specifically asked to change it
+7. Keep diagrams simple with 5-10 nodes maximum`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -37,8 +39,8 @@ serve(async (req) => {
     console.log('Updating diagram with instruction:', instruction);
 
     const userMessage = currentDiagram 
-      ? `Current Mermaid diagram:\n${currentDiagram}\n\nUser instruction:\n${instruction}`
-      : `User instruction:\n${instruction}`;
+      ? `Current diagram:\n${currentDiagram}\n\nInstruction: ${instruction}`
+      : `Create a new flowchart diagram: ${instruction}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -76,7 +78,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const mermaid = data.choices?.[0]?.message?.content?.trim() || '';
+    let mermaid = data.choices?.[0]?.message?.content?.trim() || '';
+    
+    // Clean up common issues
+    mermaid = mermaid
+      .replace(/```mermaid\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
     
     console.log('Updated mermaid:', mermaid);
 
