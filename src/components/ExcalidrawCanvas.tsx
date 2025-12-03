@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState, useCallback } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react';
 import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { Trash2, Download, Loader2 } from 'lucide-react';
@@ -48,19 +48,33 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
           if (!el || typeof el !== 'object') return false;
           if (!el.type || !el.id) return false;
           return true;
-        }).map((el: any) => ({
-          ...el,
-          // Ensure all required properties have defaults
-          strokeColor: el.strokeColor || '#1e1e1e',
-          backgroundColor: el.backgroundColor || 'transparent',
-          fillStyle: el.fillStyle || 'solid',
-          strokeWidth: el.strokeWidth || 2,
-          strokeStyle: el.strokeStyle || 'solid',
-          roughness: el.roughness ?? 1,
-          opacity: el.opacity ?? 100,
-          locked: el.locked ?? false,
-          isDeleted: false,
-        }));
+        }).map((el: any) => {
+          const baseProps = {
+            ...el,
+            strokeColor: el.strokeColor || '#1e1e1e',
+            backgroundColor: el.backgroundColor || 'transparent',
+            fillStyle: el.fillStyle || 'solid',
+            strokeWidth: el.strokeWidth || 2,
+            strokeStyle: el.strokeStyle || 'solid',
+            roughness: el.roughness ?? 1,
+            opacity: el.opacity ?? 100,
+            locked: el.locked ?? false,
+            isDeleted: false,
+          };
+
+          // Ensure text elements have proper font settings
+          if (el.type === 'text') {
+            return {
+              ...baseProps,
+              fontFamily: el.fontFamily || 1, // 1 = Virgil (hand-drawn)
+              fontSize: el.fontSize || 20,
+              textAlign: el.textAlign || 'center',
+              verticalAlign: el.verticalAlign || 'middle',
+            };
+          }
+
+          return baseProps;
+        });
 
         if (validElements.length === 0) {
           throw new Error('No valid elements could be created');
@@ -68,6 +82,7 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
         
         console.log('Valid elements:', validElements.length);
 
+        // Clear existing elements first, then add new ones
         excalidrawRef.current.updateScene({
           elements: validElements,
         });
@@ -79,7 +94,7 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
         // Fit to screen after a short delay
         setTimeout(() => {
           excalidrawRef.current?.scrollToContent(validElements, { fitToViewport: true });
-        }, 100);
+        }, 150);
         
         toast.success('Diagram generated successfully');
       } catch (error) {
@@ -180,6 +195,11 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
             excalidrawRef.current = api;
           }}
           theme="light"
+          initialData={{
+            appState: {
+              viewBackgroundColor: '#ffffff',
+            },
+          }}
           UIOptions={{
             canvasActions: {
               saveAsImage: false,
