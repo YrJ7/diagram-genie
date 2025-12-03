@@ -5,19 +5,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MERMAID_SYSTEM_PROMPT = `You are an expert at visual explanations. Convert the user's topic into a Mermaid diagram that can be directly imported into Excalidraw using importFromMermaid().
+const MERMAID_SYSTEM_PROMPT = `You are an expert at visual explanations. Convert the user's topic into a Mermaid diagram.
 
-Rules:
-1. ALWAYS output valid Mermaid syntax supported by Excalidraw.
-2. Do NOT include markdown fences like \`\`\`mermaid or backticks.
-3. Prefer:
-   - mindmap for conceptual topics
-   - flowchart TD for processes
-   - sequenceDiagram for interactions
-   - classDiagram for architecture
-   - erDiagram for databases
-4. Keep the diagram simple, clean, structured and beginner-friendly.
-5. Output ONLY Mermaid code—nothing else. No explanations, no comments.`;
+CRITICAL RULES - FOLLOW EXACTLY:
+1. Output ONLY valid Mermaid code - no explanations, no markdown fences, no backticks
+2. Use ONLY these diagram types: flowchart TD, flowchart LR, sequenceDiagram, classDiagram, erDiagram
+3. Do NOT use mindmap - it has parsing issues
+4. Node IDs must be simple alphanumeric (no spaces, no parentheses, no special chars)
+5. Use square brackets for labels: A[Label with spaces]
+6. For flowcharts, always start with "flowchart TD" or "flowchart LR"
+7. Keep diagrams simple with 5-10 nodes maximum
+
+CORRECT EXAMPLE:
+flowchart TD
+    A[Machine Learning] --> B[Supervised Learning]
+    A --> C[Unsupervised Learning]
+    B --> D[Classification]
+    B --> E[Regression]
+    C --> F[Clustering]
+    C --> G[Dimensionality Reduction]
+
+WRONG - DO NOT DO THIS:
+- mindmap (not supported well)
+- Node IDs with parentheses: A(Label)
+- Node IDs with spaces: My Node[Label]
+- Special characters in IDs: LLM's[Label]`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -51,7 +63,7 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: MERMAID_SYSTEM_PROMPT },
-          { role: 'user', content: `User topic:\n${topic}` }
+          { role: 'user', content: `Create a flowchart diagram for: ${topic}` }
         ],
       }),
     });
@@ -77,7 +89,13 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const mermaid = data.choices?.[0]?.message?.content?.trim() || '';
+    let mermaid = data.choices?.[0]?.message?.content?.trim() || '';
+    
+    // Clean up common issues
+    mermaid = mermaid
+      .replace(/```mermaid\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
     
     console.log('Generated mermaid:', mermaid);
 

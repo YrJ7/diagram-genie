@@ -28,24 +28,69 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
       setIsLoading(true);
       try {
         const { parseMermaidToExcalidraw } = await import('@excalidraw/mermaid-to-excalidraw');
-        const { elements, files } = await parseMermaidToExcalidraw(mermaidCode);
         
-        excalidrawRef.current.updateScene({
-          elements,
-          appState: { viewBackgroundColor: 'transparent' },
-        });
+        // Clean up the mermaid code
+        const cleanedCode = mermaidCode
+          .replace(/```mermaid\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
         
-        if (files) {
-          excalidrawRef.current.addFiles(Object.values(files));
+        console.log('Parsing mermaid code:', cleanedCode);
+        
+        const result = await parseMermaidToExcalidraw(cleanedCode);
+        
+        if (!result || !result.elements || result.elements.length === 0) {
+          throw new Error('No elements generated from diagram');
         }
 
-        // Fit to screen
-        excalidrawRef.current.scrollToContent(elements, { fitToViewport: true });
+        // Filter out any invalid elements and ensure required properties exist
+        const validElements = result.elements.filter((el: any) => {
+          if (!el || typeof el !== 'object') return false;
+          if (!el.type || !el.id) return false;
+          return true;
+        }).map((el: any) => ({
+          ...el,
+          // Ensure all required properties have defaults
+          strokeColor: el.strokeColor || '#1e1e1e',
+          backgroundColor: el.backgroundColor || 'transparent',
+          fillStyle: el.fillStyle || 'solid',
+          strokeWidth: el.strokeWidth || 2,
+          strokeStyle: el.strokeStyle || 'solid',
+          roughness: el.roughness ?? 1,
+          opacity: el.opacity ?? 100,
+          locked: el.locked ?? false,
+          isDeleted: false,
+        }));
+
+        if (validElements.length === 0) {
+          throw new Error('No valid elements could be created');
+        }
+        
+        console.log('Valid elements:', validElements.length);
+
+        excalidrawRef.current.updateScene({
+          elements: validElements,
+        });
+        
+        if (result.files) {
+          excalidrawRef.current.addFiles(Object.values(result.files));
+        }
+
+        // Fit to screen after a short delay
+        setTimeout(() => {
+          excalidrawRef.current?.scrollToContent(validElements, { fitToViewport: true });
+        }, 100);
         
         toast.success('Diagram generated successfully');
       } catch (error) {
         console.error('Failed to import mermaid:', error);
-        toast.error('Failed to render diagram. The Mermaid syntax may be invalid.');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        if (errorMessage.includes('Parse error')) {
+          toast.error('Invalid diagram syntax. Try a simpler topic.');
+        } else {
+          toast.error('Failed to render diagram. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -71,8 +116,8 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
           elements,
           mimeType: 'image/png',
           appState: {
-            exportWithDarkMode: document.documentElement.classList.contains('dark'),
-            viewBackgroundColor: 'transparent',
+            exportWithDarkMode: false,
+            viewBackgroundColor: '#ffffff',
           },
           files: excalidrawRef.current.getFiles(),
         });
