@@ -78,7 +78,7 @@ export default function Index() {
   return (
     <>
       <Helmet>
-        <title>Diagram AI - Understand Any Topic Visually</title>
+        <title>Decomplexify - Understand Any Topic Visually</title>
         <meta
           name="description"
           content="Transform complex topics into clear, visual diagrams using AI. Generate flowcharts, mindmaps, and more instantly."

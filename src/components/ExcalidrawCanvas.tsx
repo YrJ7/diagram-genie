@@ -4,7 +4,8 @@ import '@excalidraw/excalidraw/index.css';
 import { Trash2, Download, Loader2, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSpeech } from '@/hooks/use-speech';
-import { getElementDetails, buildExplanationPrompt, buildDeepDivePrompt, getElementContext } from '@/lib/element-detector';
+import { getElementDetails, buildExplanationPrompt, buildDeepDivePrompt, getElementContext, getTraversalOrder } from '@/lib/element-detector';
+import WalkthroughControls from './WalkthroughControls';
 import SpeechControls from './SpeechControls';
 import ElementExplainer from './ElementExplainer';
 

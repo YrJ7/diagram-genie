@@ -12,7 +12,7 @@ export const useSpeech = (options: UseSpeechOptions = {}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const speak = useCallback(
-    (text: string) => {
+    (text: string, onEnd?: () => void) => {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
@@ -22,8 +22,14 @@ export const useSpeech = (options: UseSpeechOptions = {}) => {
       utterance.volume = volume;
 
       utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        if (onEnd) onEnd();
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        if (onEnd) onEnd();
+      };
 
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
