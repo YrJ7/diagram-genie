@@ -1,0 +1,10 @@
+project_id = "jvfmihodcfakzskqtpyi"
+
+[functions.generate-diagram]
+verify_jwt = false
+
+[functions.update-diagram]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = false
