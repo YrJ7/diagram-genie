@@ -1,5 +1,5 @@
-import { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react';
-import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
+import { forwardRef, useImperativeHandle, useRef, useState, useCallback } from 'react';
+import { Excalidraw, exportToBlob, convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { Trash2, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,64 +37,33 @@ const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
         
         console.log('Parsing mermaid code:', cleanedCode);
         
-        const result = await parseMermaidToExcalidraw(cleanedCode);
+        const { elements, files } = await parseMermaidToExcalidraw(cleanedCode);
         
-        if (!result || !result.elements || result.elements.length === 0) {
+        if (!elements || elements.length === 0) {
           throw new Error('No elements generated from diagram');
         }
 
-        // Filter out any invalid elements and ensure required properties exist
-        const validElements = result.elements.filter((el: any) => {
-          if (!el || typeof el !== 'object') return false;
-          if (!el.type || !el.id) return false;
-          return true;
-        }).map((el: any) => {
-          const baseProps = {
-            ...el,
-            strokeColor: el.strokeColor || '#1e1e1e',
-            backgroundColor: el.backgroundColor || 'transparent',
-            fillStyle: el.fillStyle || 'solid',
-            strokeWidth: el.strokeWidth || 2,
-            strokeStyle: el.strokeStyle || 'solid',
-            roughness: el.roughness ?? 1,
-            opacity: el.opacity ?? 100,
-            locked: el.locked ?? false,
-            isDeleted: false,
-          };
-
-          // Ensure text elements have proper font settings
-          if (el.type === 'text') {
-            return {
-              ...baseProps,
-              fontFamily: el.fontFamily || 1, // 1 = Virgil (hand-drawn)
-              fontSize: el.fontSize || 20,
-              textAlign: el.textAlign || 'center',
-              verticalAlign: el.verticalAlign || 'middle',
-            };
-          }
-
-          return baseProps;
-        });
-
-        if (validElements.length === 0) {
-          throw new Error('No valid elements could be created');
-        }
+        console.log('Raw elements from mermaid:', elements.length);
         
-        console.log('Valid elements:', validElements.length);
+        // Convert to proper Excalidraw elements
+        const excalidrawElements = convertToExcalidrawElements(elements);
+        
+        console.log('Converted elements:', excalidrawElements.length);
 
-        // Clear existing elements first, then add new ones
+        // Update scene with converted elements
         excalidrawRef.current.updateScene({
-          elements: validElements,
+          elements: excalidrawElements,
         });
         
-        if (result.files) {
-          excalidrawRef.current.addFiles(Object.values(result.files));
+        // Add files (contains text rendered as images)
+        if (files) {
+          excalidrawRef.current.addFiles(Object.values(files));
         }
 
-        // Fit to screen after a short delay
+        // Fit to screen after elements are rendered
         setTimeout(() => {
-          excalidrawRef.current?.scrollToContent(validElements, { fitToViewport: true });
-        }, 150);
+          excalidrawRef.current?.scrollToContent(excalidrawElements, { fitToViewport: true });
+        }, 200);
         
         toast.success('Diagram generated successfully');
       } catch (error) {
