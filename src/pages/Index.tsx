@@ -31,6 +31,7 @@ export default function Index() {
       
       if (data.mermaid) {
         setCurrentMermaid(data.mermaid);
+        canvasRef.current?.setDiagramTopic(topic);
         await canvasRef.current?.importMermaid(data.mermaid);
       } else {
         throw new Error('No diagram generated');
